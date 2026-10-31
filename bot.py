@@ -58,4 +58,4 @@ async def botinfo(ctx):
 
 
 # Inicia o bot com o token seguro carregado do ambiente
-bot.run(DISCORD_TOKEN)
+bot.run("DISCORD_TOKEN")
