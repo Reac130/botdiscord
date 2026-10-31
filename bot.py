@@ -12,50 +12,56 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+class MeuBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=intents)
 
+    async def setup_hook(self):
+        # Carrega automaticamente todos os ficheiros .py dentro da pasta 'cogs' ao iniciar
+        if os.path.exists("./cogs"):
+            for filename in os.listdir("./cogs"):
+                if filename.endswith(".py"):
+                    cog_name = f"cogs.{filename[:-3]}"
+                    await self.load_extension(cog_name)
+                    print(f"📦 Módulo carregado: {filename}")
+        else:
+            print("⚠️ A pasta 'cogs' não foi encontrada!")
 
-@bot.event
-async def on_ready():
-  print(f"✅ Bot ligado com sucesso como: {bot.user}")
+    async def on_ready(self):
+        print(f"✅ Bot ligado com sucesso como: {self.user}")
 
+bot = MeuBot()
 
-# Comando !botinfo
-@bot.command()
-async def botinfo(ctx):
-  # Procura as informações da aplicação para descobrir o dono dinamicamente
-  app_info = await bot.application_info()
-  dono = app_info.owner
+# --- COMANDOS DE GESTÃO DE COGS ---
 
-  # Deteta o sistema operativo de forma amigável
-  sistema_operativo = platform.system()
-  if sistema_operativo == "Linux" and "android" in platform.release().lower():
-    onde_roda = "📱 Telemóvel (Termux / Android)"
-  elif sistema_operativo == "Linux":
-    onde_roda = "🐧 Servidor Linux / VPS"
-  elif sistema_operativo == "Windows":
-    onde_roda = "💻 Computador (Windows)"
-  else:
-    onde_roda = f"⚙️ {sistema_operativo}"
+@bot.command(name="load")
+@commands.is_owner() # Podes remover se quiseres que qualquer pessoa use (não recomendado)
+async def load_cog(ctx, extension: str):
+    """Carrega um módulo que esteja desativado."""
+    try:
+        await bot.load_extension(f"cogs.{extension}")
+        await ctx.send(f"✅ Módulo `cogs.{extension}` carregado com sucesso!")
+    except Exception as e:
+        await ctx.send(f"❌ Erro ao carregar: `{e}`")
 
-  # Criar uma mensagem bonita (Embed)
-  embed = discord.Embed(title="ℹ️ Informações do Bot", color=discord.Color.blue())
-  embed.add_field(
-      name="👑 Dono do Bot", value=f"{dono.name} ({dono.mention})", inline=False
-  )
-  embed.add_field(name="📍 Onde está a rodar?", value=onde_roda, inline=False)
-  embed.add_field(
-      name="🐍 Versão do Python", value=platform.python_version(), inline=True
-  )
-  embed.add_field(
-      name="📚 Biblioteca",
-      value=f"discord.py v{discord.__version__}",
-      inline=True,
-  )
+@bot.command(name="unload")
+@commands.is_owner()
+async def unload_cog(ctx, extension: str):
+    """Desativa um módulo temporariamente."""
+    try:
+        await bot.unload_extension(f"cogs.{extension}")
+        await ctx.send(f"⚠️ Módulo `cogs.{extension}` desativado com sucesso!")
+    except Exception as e:
+        await ctx.send(f"❌ Erro ao desativar: `{e}`")
 
-  # Envia a resposta para o canal
-  await ctx.send(embed=embed)
-
+@bot.command(name="reload")
+async def reload_cog(ctx, extension: str):
+    """Recarrega um módulo após alterares o código no GitHub e fazeres git pull."""
+    try:
+        await bot.reload_extension(f"cogs.{extension}")
+        await ctx.send(f"🔄 Módulo `cogs.{extension}` recarregado com sucesso! As alterações já estão ativas.")
+    except Exception as e:
+        await ctx.send(f"❌ Erro ao recarregar: `{e}`")
 
 # Inicia o bot com o token seguro carregado do ambiente
 bot.run(TOKEN)
