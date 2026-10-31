@@ -1,5 +1,6 @@
 import os
 import platform
+import random
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -54,7 +55,7 @@ async def reload_cog(ctx, extension: str):
         await ctx.send(f"❌ Erro ao recarregar: `{e}`")
 
 
-# --- NOVOS COMANDOS ADICIONADOS ---
+# --- COMANDOS DE UTILIDADE E GESTÃO DO SERVIDOR ---
 
 @bot.command(name="ping", help="Mostra a latência atual do bot.")
 async def ping(ctx):
@@ -62,7 +63,7 @@ async def ping(ctx):
     await ctx.send(f"🏓 Pong! A latência é de **{latencia}ms**.")
 
 @bot.command(name="sync", help="Sincroniza os slash commands globalmente ou por guild.")
-@commands.is_owner() # Opcional: Garante que apenas o dono do bot pode usar
+@commands.is_owner()
 async def sync_commands(ctx):
     try:
         synced = await bot.tree.sync()
@@ -77,19 +78,62 @@ async def limpar(ctx, quantidade: int = 5):
         await ctx.send("⚠️ Por favor, indica um número maior que 0.")
         return
     
-    # Apaga as mensagens (+1 para incluir a mensagem do próprio comando)
     apagadas = await ctx.channel.purge(limit=quantidade + 1)
-    
     msg = await ctx.send(f"🧹 Foram apagadas **{len(apagadas) - 1}** mensagens.")
-    await msg.delete(delay=4) # Apaga o aviso passado 4 segundos
+    await msg.delete(delay=4)
 
 @bot.command(name="desligar", aliases=["shutdown"], help="Desliga o bot com segurança.")
-@commands.is_owner() # Apenas o dono do bot configurado no Developer Portal pode usar
+@commands.is_owner()
 async def shutdown(ctx):
     await ctx.send("🔌 A desligar o bot... Até breve!")
     await bot.close()
 
-# Tratamento de erros para comandos restritos ao dono ou com permissões
+
+# --- NOVOS COMANDOS DE DIVERSÃO E UTILIDADE ---
+
+@bot.command(name="avatar", help="Mostra o avatar de um utilizador.")
+async def avatar(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    
+    embed = discord.Embed(
+        title=f"Avatar de {member.name}",
+        color=discord.Color.blue()
+    )
+    embed.set_image(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+
+@bot.command(name="dado", aliases=["roll"], help="Rola um dado (ex: !dado 6 para um dado de 6 faces).")
+async def rolar_dado(ctx, lados: int = 6):
+    if lados < 2:
+        await ctx.send("⚠️ O dado precisa de ter pelo menos 2 lados!")
+        return
+    resultado = random.randint(1, lados)
+    await ctx.send(f"🎲 {ctx.author.mention}, o resultado do dado (1-{lados}) foi: **{resultado}**")
+
+@bot.command(name="say", help="Faz o bot repetir uma mensagem e apaga a original.")
+@commands.has_permissions(manage_messages=True)
+async def say(ctx, *, mensagem: str):
+    await ctx.message.delete()
+    await ctx.send(mensagem)
+
+@bot.command(name="userinfo", aliases=["perfil"], help="Mostra informações sobre um utilizador.")
+async def userinfo(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    
+    criacao = member.created_at.strftime("%d/%m/%Y às %H:%M")
+    entrada = member.joined_at.strftime("%d/%m/%Y às %H:%M") if member.joined_at else "Desconhecido"
+    
+    embed = discord.Embed(title=f"Informações de {member.name}", color=member.color)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    embed.add_field(name="ID", value=member.id, inline=True)
+    embed.add_field(name="Conta Criada a", value=criacao, inline=False)
+    embed.add_field(name="Entrou no Servidor a", value=entrada, inline=False)
+    
+    await ctx.send(embed=embed)
+
+
+# --- TRATAMENTO DE ERROS ---
+
 @limpar.error
 async def limpar_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
