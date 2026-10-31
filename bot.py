@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente a partir do ficheiro .env
 load_dotenv()
-TOKEN = os.getenv(DISCORD_TOKEN)
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Configura as permissões obrigatórias
 intents = discord.Intents.default()
@@ -58,4 +58,4 @@ async def botinfo(ctx):
 
 
 # Inicia o bot com o token seguro carregado do ambiente
-bot.run(DISCORD_TOKEN)
+bot.run(TOKEN)
